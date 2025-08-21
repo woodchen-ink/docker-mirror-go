@@ -1,8 +1,8 @@
-name: Docker Build and Push
+name: 🐳 Docker Build & Push
 
 on:
   workflow_run:
-    workflows: ["Build"]
+    workflows: ["🔨 Build Binaries"]
     types:
       - completed
     branches: [ main ]
