@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+    image: ghcr.io/woodchen-ink/docker-mirror-go:latest
+    container_name: docker-mirror-go
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
