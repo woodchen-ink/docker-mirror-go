@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  docker-mirror-go:
     image: ghcr.io/woodchen-ink/docker-mirror-go:latest
     container_name: docker-mirror-go
     ports:

@@ -1,32 +1,16 @@
-# Build stage
-FROM golang:1.21-alpine AS builder
-
-WORKDIR /app
-
-# Install git for go modules
-RUN apk add --no-cache git
-
-# Copy go mod files
-COPY go.mod go.sum ./
-
-# Download dependencies
-RUN go mod download
-
-# Copy source code
-COPY . .
-
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o docker-mirror-go .
-
-# Final stage
+# Use pre-built binary
 FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
-# Copy the binary from builder stage
-COPY --from=builder /app/docker-mirror-go .
+# Copy the pre-built binary based on target architecture
+ARG TARGETARCH
+COPY docker-mirror-go-linux-${TARGETARCH} ./docker-mirror-go
+
+# Make it executable
+RUN chmod +x ./docker-mirror-go
 
 # Expose port
 EXPOSE 8080
