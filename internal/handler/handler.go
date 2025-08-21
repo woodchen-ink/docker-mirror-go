@@ -90,23 +90,29 @@ func hostByOrgName(orgName string) string {
 func rewritePath(orgName, pathname string) string {
 	splitedPath := strings.Split(pathname, "/")
 
-	// /v2/repo/manifests/xxx -> /v2/library/repo/manifests/xxx
-	// /v2/repo/blobs/xxx -> /v2/library/repo/blobs/xxx
-	if orgName == "" && len(splitedPath) == 5 && validActionNames[splitedPath[3]] {
+	// For official Docker Hub images (not in orgNameBackend), add library/ prefix
+	// /v2/mysql/manifests/xxx -> /v2/library/mysql/manifests/xxx
+	// /v2/nginx/blobs/xxx -> /v2/library/nginx/blobs/xxx
+	if orgName != "" && orgNameBackend[orgName] == "" && len(splitedPath) == 5 && validActionNames[splitedPath[3]] {
 		newPath := []string{splitedPath[0], splitedPath[1], "library", splitedPath[2], splitedPath[3], splitedPath[4]}
 		return strings.Join(newPath, "/")
 	}
 
-	if orgName == "" || orgNameBackend[orgName] == "" {
+	// For /v2/ requests without org name
+	if orgName == "" {
 		return pathname
 	}
 
-	// Remove org name from path for external registries
-	var cleanSplitedPath []string
-	for i, part := range splitedPath {
-		if !(part == orgName && i == 2) {
-			cleanSplitedPath = append(cleanSplitedPath, part)
+	// For external registries (gcr, quay, etc.), remove org name from path
+	if orgNameBackend[orgName] != "" {
+		var cleanSplitedPath []string
+		for i, part := range splitedPath {
+			if !(part == orgName && i == 2) {
+				cleanSplitedPath = append(cleanSplitedPath, part)
+			}
 		}
+		return strings.Join(cleanSplitedPath, "/")
 	}
-	return strings.Join(cleanSplitedPath, "/")
+
+	return pathname
 }
