@@ -21,7 +21,7 @@ func NewBackend(host string, tokenProvider *token.TokenProvider) *Backend {
 	}
 }
 
-func (b *Backend) Proxy(pathname string, headers http.Header) (*http.Response, error) {
+func (b *Backend) Proxy(method, pathname string, headers http.Header) (*http.Response, error) {
 	targetURL, err := url.Parse(b.host)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse host URL: %w", err)
@@ -29,7 +29,7 @@ func (b *Backend) Proxy(pathname string, headers http.Header) (*http.Response, e
 
 	targetURL.Path = pathname
 
-	req, err := http.NewRequest("GET", targetURL.String(), nil)
+	req, err := http.NewRequest(method, targetURL.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -67,7 +67,7 @@ func (b *Backend) Proxy(pathname string, headers http.Header) (*http.Response, e
 	}
 
 	// Create authenticated request
-	authReq, err := http.NewRequest("GET", targetURL.String(), nil)
+	authReq, err := http.NewRequest(method, targetURL.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create authenticated request: %w", err)
 	}

@@ -41,6 +41,7 @@ func HandleRegistryRequest(c *gin.Context) {
 	headers := copyProxyHeaders(c.Request.Header)
 
 	log.Info().
+		Str("method", c.Request.Method).
 		Str("original_path", c.Request.URL.Path).
 		Str("rewritten_path", pathname).
 		Str("host", host).
@@ -49,13 +50,24 @@ func HandleRegistryRequest(c *gin.Context) {
 		Bool("has_credentials", username != "" && password != "").
 		Msg("Proxying registry request")
 
-	resp, err := dockerBackend.Proxy(pathname, headers)
+	resp, err := dockerBackend.Proxy(c.Request.Method, pathname, headers)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to proxy request")
+		log.Error().
+			Err(err).
+			Str("method", c.Request.Method).
+			Str("path", pathname).
+			Str("host", host).
+			Msg("Failed to proxy request")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to proxy request"})
 		return
 	}
 	defer resp.Body.Close()
+
+	log.Info().
+		Str("method", c.Request.Method).
+		Str("path", pathname).
+		Int("status", resp.StatusCode).
+		Msg("Proxy response received")
 
 	// Copy response headers
 	for k, v := range resp.Header {
