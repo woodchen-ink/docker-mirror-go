@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/base64"
 	"net/http"
 	"strings"
 
@@ -11,7 +12,7 @@ import (
 )
 
 var (
-	proxyHeaderAllowList = []string{"accept", "user-agent", "accept-encoding"}
+	proxyHeaderAllowList = []string{"accept", "user-agent", "accept-encoding", "authorization"}
 	validActionNames     = map[string]bool{
 		"manifests": true,
 		"blobs":     true,
@@ -32,7 +33,9 @@ func HandleRegistryRequest(c *gin.Context) {
 	pathname := rewritePath(orgName, c.Request.URL.Path)
 	host := hostByOrgName(orgName)
 
-	tokenProvider := token.NewTokenProvider("", "")
+	// Extract credentials from Authorization header
+	username, password := getCredentialsFromRequest(c)
+	tokenProvider := token.NewTokenProvider(username, password)
 	dockerBackend := backend.NewBackend(host, tokenProvider)
 
 	headers := copyProxyHeaders(c.Request.Header)
@@ -42,6 +45,8 @@ func HandleRegistryRequest(c *gin.Context) {
 		Str("rewritten_path", pathname).
 		Str("host", host).
 		Str("org_name", orgName).
+		Str("username", username).
+		Bool("has_credentials", username != "" && password != "").
 		Msg("Proxying registry request")
 
 	resp, err := dockerBackend.Proxy(pathname, headers)
@@ -70,6 +75,29 @@ func copyProxyHeaders(inputHeaders http.Header) http.Header {
 		}
 	}
 	return headers
+}
+
+// getCredentialsFromRequest extracts credentials from Authorization header
+func getCredentialsFromRequest(c *gin.Context) (string, string) {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader != "" && strings.HasPrefix(authHeader, "Basic ") {
+		// Decode Basic Auth
+		encoded := strings.TrimPrefix(authHeader, "Basic ")
+		decoded, err := base64.StdEncoding.DecodeString(encoded)
+		if err == nil {
+			parts := strings.SplitN(string(decoded), ":", 2)
+			if len(parts) == 2 {
+				log.Info().
+					Str("username", parts[0]).
+					Msg("Using credentials from Authorization header")
+				return parts[0], parts[1]
+			}
+		}
+	}
+
+	// No credentials provided
+	log.Info().Msg("No Authorization header found")
+	return "", ""
 }
 
 func orgNameFromPath(pathname string) string {

@@ -134,10 +134,10 @@ func (tp *TokenProvider) fetchToken(wwwAuth *WwwAuthenticate) (*Token, error) {
 		return nil, fmt.Errorf("failed to create token request: %w", err)
 	}
 
-	// TODO: Add basic auth support if username/password provided
-	// if tp.username != "" && tp.password != "" {
-	//     req.SetBasicAuth(tp.username, tp.password)
-	// }
+	// Add basic auth support if username/password provided
+	if tp.username != "" && tp.password != "" {
+		req.SetBasicAuth(tp.username, tp.password)
+	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
