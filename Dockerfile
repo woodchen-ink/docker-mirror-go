@@ -1,13 +1,16 @@
 # Use pre-built binary
 FROM alpine:latest
 
+# Copy the pre-built binary based on target architecture
+ARG TARGETARCH
+COPY docker-mirror-go-linux-${TARGETARCH} ./docker-mirror-go
+
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
-# Copy the pre-built binary based on target architecture
-ARG TARGETARCH
-COPY docker-mirror-go-linux-${TARGETARCH} ./docker-mirror-go
+# Move binary to working directory
+RUN mv /docker-mirror-go ./docker-mirror-go
 
 # Make it executable
 RUN chmod +x ./docker-mirror-go
